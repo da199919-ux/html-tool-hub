@@ -1,0 +1,64 @@
+rules_version = '2';
+service cloud.firestore {
+  match /databases/{database}/documents {
+    function signed() { return request.auth != null; }
+    function admin() {
+      return signed() && exists(/databases/$(database)/documents/users/$(request.auth.uid))
+        && get(/databases/$(database)/documents/users/$(request.auth.uid)).data.role == 'admin';
+    }
+    function member(w) {
+      return signed() && exists(/databases/$(database)/documents/users/$(request.auth.uid)/spaces/$(w));
+    }
+    function readSpace(w) { return admin() || member(w); }
+    function editSpace(w) {
+      return admin() || (member(w) && get(/databases/$(database)/documents/users/$(request.auth.uid)/spaces/$(w)).data.role == 'editor');
+    }
+    function travel(w) {
+      return exists(/databases/$(database)/documents/workspaces/$(w))
+        && get(/databases/$(database)/documents/workspaces/$(w)).data.toolId == 'travel';
+    }
+    match /users/{uid} {
+      allow get: if signed() && (request.auth.uid == uid || admin());
+      allow list: if admin();
+      // 管理員身分只能由 Firebase Console / 受信任管理環境設定。
+      allow write: if false;
+      match /spaces/{w} {
+        allow read: if signed() && (request.auth.uid == uid || admin());
+        allow create, update: if admin()
+          && exists(/databases/$(database)/documents/workspaces/$(w))
+          && request.resource.data.keys().hasOnly(['role'])
+          && request.resource.data.role in ['editor','viewer'];
+        allow delete: if admin();
+      }
+    }
+    match /workspaces/{w} {
+      allow get: if readSpace(w);
+      allow list: if admin();
+      allow create: if admin()
+        && request.resource.data.keys().hasOnly(['name','toolId','createdAt'])
+        && request.resource.data.name is string && request.resource.data.name.size() > 0
+        && request.resource.data.name.size() <= 100
+        && request.resource.data.toolId == 'travel'
+        && request.resource.data.createdAt == request.time;
+      // V1 不提供空間刪除，避免遺留子集合。
+      allow update, delete: if false;
+      match /records/{recordId} {
+        function valid() {
+          let d = request.resource.data;
+          return d.keys().hasAll(['title','time','content','done','version','updatedAt','updatedBy'])
+            && d.keys().hasOnly(['title','time','content','done','version','updatedAt','updatedBy'])
+            && d.title is string && d.title.size() > 0 && d.title.size() <= 120
+            && d.time is string && d.time.matches('^([01][0-9]|2[0-3]):[0-5][0-9]$')
+            && d.content is string && d.content.size() <= 4000
+            && d.done is bool && d.version is int
+            && d.updatedAt == request.time && d.updatedBy == request.auth.uid;
+        }
+        allow read: if readSpace(w) && travel(w);
+        allow create: if editSpace(w) && travel(w) && valid() && request.resource.data.version == 1;
+        allow update: if editSpace(w) && travel(w) && valid()
+          && request.resource.data.version == resource.data.version + 1;
+        allow delete: if admin() && travel(w);
+      }
+    }
+  }
+}
