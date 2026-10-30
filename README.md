@@ -2,13 +2,13 @@
 
 GitHub Pages + Firebase 的繁體中文工具中心，首個工具為「金山萬里一日遊」。原生 HTML/CSS/JavaScript，不需要前端編譯。
 
-**目前交付的是可部署原始碼，尚未連接真實 Firebase 或發布至 GitHub Pages。**
+**網站已發布：[開啟 HTML Tool Hub](https://da199919-ux.github.io/html-tool-hub/)。** Firebase、Google 登入供應商與安全規則已設定；專案唯一人員擁有者與網站管理員皆為 da199919@gmail.com（2026-10-31 核對）。已以兩個真實 Google 帳號完成隔離、即時同步、唯讀、撤權與衝突驗收，結果與尚未測試項目見 [驗證紀錄](docs/verification.md)；部署狀態見 [部署紀錄](docs/deployment.md)。
 
 請先看 [新手設定說明](docs/setup.md)，再看 [驗收與權限設計](docs/architecture.md)。
 
 ## 已實作
 
-- Google 彈出式登入、登出；僅在目前瀏覽器工作階段保留登入。
+- Google 彈出式登入（每次可選擇帳號）、登出；登入只保留在目前分頁的工作階段。
 - 工具搜尋、公開唯讀示範、依授權顯示工作空間。
 - 管理員新增工作空間，以 UID 授予／更新／撤銷編輯者及檢視者。
 - 成員可跨多個空間取得不同角色；未核准使用者無資料存取權。
@@ -42,7 +42,9 @@ html-tool-hub/
 ├─ .github/workflows/pages.yml  # 測試通過才發布 public/
 └─ docs/
    ├─ setup.md
-   └─ architecture.md
+   ├─ architecture.md
+   ├─ deployment.md
+   └─ verification.md
 ```
 
 ## 本機預覽
