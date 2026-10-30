@@ -34,7 +34,12 @@ export async function guarded(action) { try { await action(); } catch(e) { notic
 export function validId(value) { return /^[A-Za-z0-9_-]{1,128}$/.test(value); }
 export async function session(onChange) {
   const s = await connect();
-  document.querySelector('#login').onclick = () => guarded(() => s.a.signInWithPopup(s.auth,new s.a.GoogleAuthProvider()));
+  document.querySelector('#login').onclick = () => guarded(() => {
+    // 共用裝置或多個 Google 帳號時，每次都讓使用者選擇帳號，避免自動登入上一個帳號。
+    const provider = new s.a.GoogleAuthProvider();
+    provider.setCustomParameters({ prompt:'select_account' });
+    return s.a.signInWithPopup(s.auth, provider);
+  });
   document.querySelector('#logout').onclick = () => guarded(() => s.a.signOut(s.auth));
   let stopProfile = () => {};
   s.a.onAuthStateChanged(s.auth, user => {
